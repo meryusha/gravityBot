@@ -9,14 +9,17 @@ from telepot.namedtuple import ReplyKeyboardMarkup, KeyboardButton
 #{'first_name': 'Your Bot', 'username': 'YourBot', 'id': 123456789}
 def on_chat_message(msg):
     content_type, chat_type, chat_id = telepot.glance(msg)
-
+    textButtonOne = "Ranking"
+    textButtonTwo = "Choosing a program"
+    textButtonThree = "find a person"
+    textButtonFour = "UNI info"
     
     if content_type == 'text':
         if msg['text'] == '/key':
             bot.sendMessage(chat_id, 'testing custom keyboard',
                             reply_markup=ReplyKeyboardMarkup(
                                 keyboard=[
-                                    [KeyboardButton(text="Ilyuha kakashka"), KeyboardButton(text="Ilyuha kozyavka")]
+                                    [KeyboardButton(text=textButtonOne), KeyboardButton(text=textButtonTwo), KeyboardButton(text=textButtonThree), KeyboardButton(text=textButtonFour)]
                                 ]
                             ))
 
