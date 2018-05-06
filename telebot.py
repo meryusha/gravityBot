@@ -2,8 +2,12 @@ import telepot
 import sys
 import time
 from telepot.loop import MessageLoop
+#print "dcd"
 from firebase import firebase
+import firebase_admin
 from telepot.namedtuple import ReplyKeyboardMarkup, KeyboardButton
+
+#from firebase_admin import credentials
 
 
 mfirebase = firebase.FirebaseApplication('https://gravitel-d0c7e.firebaseio.com', None)
@@ -32,6 +36,10 @@ def on_chat_message(msg):
         "301-350", "351-400", "401-450",
         "451-500", "501-550", "550-600"]
 
+    unis = mfirebase.get('unis/', None)
+    #uni = None
+    #countrues = generateCountries(unis);
+    #print(type(unis))
     if content_type == 'text':
         if msg['text'] == mainMenu:
             bot.sendMessage(chat_id, mainMenu,
@@ -96,6 +104,58 @@ def on_chat_message(msg):
                 message += str(data[i]['world_rank']) + ") " + data[i]['university_name'] + "\n"
             print(message)
             bot.sendMessage(chat_id, message)
+
+        elif msg['text'] == textButtonFour:
+        	bot.sendMessage(chat_id, 'Enter the uni name in format "uni=" + name')
+
+
+        #elif uni is not None:
+        	#bot.sendMessage(chat_id, unis['university_name'] + )
+
+        elif msg['text'] == rankingOne:
+        	bot.sendMessage(chat_id, 'Enter the country name in format "country=" + name')
+
+        elif 'country=' in msg['text']:
+        	l = generateCountries(unis, msg['text'].split('=')[1])
+        	messageC = "Top 30 universities in " + msg['text'].split('=')[1] + "\n\n"
+        	for i in range (1, len(l)):
+        		messageC += l[i] + "\n"
+        	print(messageC)
+        	bot.sendMessage(chat_id, messageC)
+        elif 'uni=' in msg['text']:
+        	mes = findUni(unis, msg['text'].split('=')[1])
+        	bot.sendMessage(chat_id, mes)
+
+        elif msg['text'] == textButtonThree:
+        	data = mfirebase.get('people/', None)
+        	message = "Database for people: "
+        	print(len(data))
+        	for key, value in data.items():
+        		#print (key)
+        		message = message + str(key) + "\n\n" + str(value)
+        	bot.sendMessage(chat_id, message)
+
+
+
+
+def generateCountries(unis, country):
+	print(country)
+	#print(unis[1])
+
+	list_uni = []
+	for i in range (1, min(30, len(unis))):
+		#print(unis[i] + i)
+		if unis[i]['country'] == country:
+			list_uni.append(str(unis[i]['world_rank']) + ") " + unis[i]['university_name'])
+	return list_uni
+
+def findUni(unis, uni):
+	uniInfo = ""
+	for i in range (1,  len(unis)):
+		#print(unis[i] + i)
+		if unis[i]['university_name'] == uni:
+			return  "rank: " + str(unis[i]['world_rank']) +"\n\n"+ "citations: " + str(unis[i]['citations']) +"\n\n"+  "country: " + unis[i]['country']
+	return uni_info
 
 def on_callback_query(msg):
     query_id, from_id, query_data = telepot.glance(msg, flavor='callback_query')
