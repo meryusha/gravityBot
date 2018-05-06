@@ -2,10 +2,8 @@ import telepot
 import sys
 import time
 from telepot.loop import MessageLoop
-#print "dcd"
 from firebase import firebase
-import firebase_admin
-from telepot.namedtuple import ReplyKeyboardMarkup, KeyboardButton
+from telepot.namedtuple import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
 #from firebase_admin import credentials
 
@@ -26,7 +24,6 @@ def on_chat_message(msg):
     level = ["Graduate", "Undergraduate"]
     fund = ["Self-financed", "Scholarship"]
     location = ["Kazakhstan", "Abroad"]
-    chosen = ["", "", ""]
 
     mainMenu = 'Main menu'
 
@@ -36,18 +33,62 @@ def on_chat_message(msg):
         "301-350", "351-400", "401-450",
         "451-500", "501-550", "550-600"]
 
+    main_markup = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=textButtonOne)], [KeyboardButton(text=textButtonTwo)],
+            [KeyboardButton(text=textButtonThree), KeyboardButton(text=textButtonFour)]
+        ]
+    )
+
     unis = mfirebase.get('unis/', None)
     #uni = None
     #countrues = generateCountries(unis);
     #print(type(unis))
     if content_type == 'text':
-        if msg['text'] == mainMenu:
-            bot.sendMessage(chat_id, mainMenu,
-                            reply_markup=ReplyKeyboardMarkup(
-                                keyboard=[
-                                    [KeyboardButton(text=textButtonOne)], [KeyboardButton(text=textButtonTwo)], [KeyboardButton(text=textButtonThree), KeyboardButton(text=textButtonFour)]
-                                ]
-                            ))
+        if mfirebase.get('users/' + str(msg['from']['id']) + "/findPerson", None):
+            mfirebase.put('users/' + str(msg['from']['id']), name="findPerson", data=False, params={'print': 'pretty'})
+            people = mfirebase.get('people/', None)
+
+            message = ""
+            if len(msg['text']) < 3:
+                message = "Query is too short. Try again"
+            else:
+                for key in people.keys():
+                     if msg['text'].lower() in key:
+                        message += "People at " + key + ":\n\n"
+                        for name in people[key].keys():
+                            person = people[key][name]
+                            message += "Name: " + name + ". Email: " + person['email'] + ". Admitted: " + str(person['admitted'])
+                            message += ". Level: " + person['level'] + ". Major: " + person['major']
+                            message += ". Telegram username: " + person['telegram'] + "\n\n"
+            if len(message) == 0:
+                message = "No such university found"
+            bot.sendMessage(chat_id, message, reply_markup=main_markup)
+        elif mfirebase.get('users/' + str(msg['from']['id']) + "/findUni", None):
+            mfirebase.put('users/' + str(msg['from']['id']), name="findUni", data=False, params={'print': 'pretty'})
+            message = ""
+            if len(msg['text']) < 3:
+                message = "Query is too short. Try again"
+            else:
+                for i in range(1, len(unis)):
+                    if msg['text'].lower() in unis[i]['university_name'].lower():
+                        message += unis[i]['university_name'] + "\n"
+                        message += "Rank: " + str(unis[i]['world_rank']) +"\n"+ "Citations: " + str(unis[i]['citations']) +"\n"+ "Country: " + unis[i]['country'] + "\n\n"
+            if len(message) == 0:
+                message = "No such university found"
+            bot.sendMessage(chat_id, message, reply_markup=main_markup)
+        elif mfirebase.get('users/' + str(msg['from']['id']) + "/findCountry", None):
+            mfirebase.put('users/' + str(msg['from']['id']), name="findCountry", data=False, params={'print': 'pretty'})
+            l = generateCountries(unis, msg['text'])
+            messageC = "Top 30 universities in " + msg['text'].split('=')[1] + "\n\n"
+            for i in range (1, len(l)):
+                messageC += l[i] + "\n"
+            if (len(l)==0):
+                messageC = "No universities found"
+            print(messageC)
+            bot.sendMessage(chat_id, messageC, reply_markup=main_markup)
+        elif msg['text'] == mainMenu:
+            bot.sendMessage(chat_id, mainMenu, reply_markup=main_markup)
         elif msg['text'] == textButtonOne:
             bot.sendMessage(chat_id, 'University Ranking',
                             reply_markup=ReplyKeyboardMarkup(
@@ -62,8 +103,11 @@ def on_chat_message(msg):
                                     [KeyboardButton(text=level[0])], [KeyboardButton(text=level[1])], [KeyboardButton(text=mainMenu)]
                                 ]
                             ))
+        elif msg['text'] == textButtonThree:
+            bot.sendMessage(chat_id, "Please enter a university name", reply_markup=ReplyKeyboardRemove())
+            mfirebase.put('users/' + str(msg['from']['id']), name="findPerson", data=True, params={'print': 'pretty'})
         elif msg['text'] in level:
-            chosen[0] = msg['text']
+            mfirebase.put('users/' + str(msg['from']['id']), name="level", data=msg['text'], params={'print': 'pretty'})
             bot.sendMessage(chat_id, msg['text'],
                             reply_markup=ReplyKeyboardMarkup(
                                 keyboard=[
@@ -71,7 +115,7 @@ def on_chat_message(msg):
                                 ]
                             ))
         elif msg['text'] in fund:
-            chosen[1] = msg['text']
+            mfirebase.put('users/' + str(msg['from']['id']), name="fund", data=msg['text'], params={'print': 'pretty'})
             bot.sendMessage(chat_id, msg['text'],
                             reply_markup=ReplyKeyboardMarkup(
                                 keyboard=[
@@ -79,7 +123,7 @@ def on_chat_message(msg):
                                 ]
                             ))
         elif msg['text'] in location:
-            chosen[2] = msg['text']
+            mfirebase.put('users/' + str(msg['from']['id']), name="location", data=msg['text'], params={'print': 'pretty'})
             bot.sendMessage(chat_id, msg['text'],
                             reply_markup=ReplyKeyboardMarkup(
                                 keyboard=[[KeyboardButton(text=mainMenu)]
@@ -105,57 +149,51 @@ def on_chat_message(msg):
             print(message)
             bot.sendMessage(chat_id, message)
 
+        # elif msg['text'] == textButtonFour:
+        #     bot.sendMessage(chat_id, "Please enter a university name", reply_markup=ReplyKeyboardRemove())
+        #     mfirebase.put('users/' + str(msg['from']['id']), name="findUni", data=True, params={'print': 'pretty'})
         elif msg['text'] == textButtonFour:
-        	bot.sendMessage(chat_id, 'Enter the uni name in format "uni=" + name')
-
-
+            bot.sendMessage(chat_id, 'Please enter a university name', reply_markup=ReplyKeyboardRemove())
+            mfirebase.put('users/' + str(msg['from']['id']), name="findUni", data=True, params={'print': 'pretty'})
         #elif uni is not None:
-        	#bot.sendMessage(chat_id, unis['university_name'] + )
-
+            #bot.sendMessage(chat_id, unis['university_name'] + )
         elif msg['text'] == rankingOne:
-        	bot.sendMessage(chat_id, 'Enter the country name in format "country=" + name')
-
-        elif 'country=' in msg['text']:
-        	l = generateCountries(unis, msg['text'].split('=')[1])
-        	messageC = "Top 30 universities in " + msg['text'].split('=')[1] + "\n\n"
-        	for i in range (1, len(l)):
-        		messageC += l[i] + "\n"
-        	print(messageC)
-        	bot.sendMessage(chat_id, messageC)
-        elif 'uni=' in msg['text']:
-        	mes = findUni(unis, msg['text'].split('=')[1])
-        	bot.sendMessage(chat_id, mes)
-
-        elif msg['text'] == textButtonThree:
-        	data = mfirebase.get('people/', None)
-        	message = "Database for people: "
-        	print(len(data))
-        	for key, value in data.items():
-        		#print (key)
-        		message = message + str(key) + "\n\n" + str(value)
-        	bot.sendMessage(chat_id, message)
+            bot.sendMessage(chat_id, 'Please enter a country name', reply_markup=ReplyKeyboardRemove())
+            mfirebase.put('users/' + str(msg['from']['id']), name="findCountry", data=True, params={'print': 'pretty'})
+        # elif 'uni=' in msg['text']:
+        # elif msg['text'] == textButtonThree:
+        #     data = mfirebase.get('people/', None)
+        #     message = "Database for people: "
+        #     print(len(data))
+        #     for key, value in data.items():
+        #         #print (key)
+        #         message = message + str(key) + "\n\n" + str(value)
+        #     bot.sendMessage(chat_id, message)
 
 
 
 
 def generateCountries(unis, country):
-	print(country)
-	#print(unis[1])
+    print(country)
+    #print(unis[1])
+    list_uni = []
+    for i in range(1, len(unis)):
+        #print(unis[i] + i)
+        if country.lower() in unis[i]['country'].lower():
+            list_uni.append(str(unis[i]['world_rank']) + ") " + unis[i]['university_name'])
+            if len(list_uni) > 30:
+                return list_uni
+    return list_uni
 
-	list_uni = []
-	for i in range (1, min(30, len(unis))):
-		#print(unis[i] + i)
-		if unis[i]['country'] == country:
-			list_uni.append(str(unis[i]['world_rank']) + ") " + unis[i]['university_name'])
-	return list_uni
 
 def findUni(unis, uni):
-	uniInfo = ""
-	for i in range (1,  len(unis)):
-		#print(unis[i] + i)
-		if unis[i]['university_name'] == uni:
-			return  "rank: " + str(unis[i]['world_rank']) +"\n\n"+ "citations: " + str(unis[i]['citations']) +"\n\n"+  "country: " + unis[i]['country']
-	return uni_info
+    uniInfo = ""
+    for i in range(1,  len(unis)):
+        #print(unis[i] + i)
+        if unis[i]['university_name'] == uni:
+            return  "rank: " + str(unis[i]['world_rank']) +"\n\n"+ "citations: " + str(unis[i]['citations']) +"\n\n"+  "country: " + unis[i]['country']
+    return uniInfo
+
 
 def on_callback_query(msg):
     query_id, from_id, query_data = telepot.glance(msg, flavor='callback_query')
