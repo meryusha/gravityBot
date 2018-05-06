@@ -80,7 +80,7 @@ def on_chat_message(msg):
         elif mfirebase.get('users/' + str(msg['from']['id']) + "/findCountry", None):
             mfirebase.put('users/' + str(msg['from']['id']), name="findCountry", data=False, params={'print': 'pretty'})
             l = generateCountries(unis, msg['text'])
-            messageC = "Top 30 universities in " + msg['text'].split('=')[1] + "\n\n"
+            messageC = "Top 30 universities in " + msg['text'] + "\n\n"
             for i in range (1, len(l)):
                 messageC += l[i] + "\n"
             if (len(l)==0):
