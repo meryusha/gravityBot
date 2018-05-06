@@ -80,7 +80,7 @@ def on_chat_message(msg):
         elif mfirebase.get('users/' + str(msg['from']['id']) + "/findCountry", None):
             mfirebase.put('users/' + str(msg['from']['id']), name="findCountry", data=False, params={'print': 'pretty'})
             l = generateCountries(unis, msg['text'])
-            messageC = "Top 30 universities in " + msg['text'] + "\n\n"
+            messageC = "Top " + str(len(l)) + " universities in " + msg['text'] + "\n\n"
             for i in range (1, len(l)):
                 messageC += l[i] + "\n"
             if (len(l)==0):
@@ -181,7 +181,7 @@ def generateCountries(unis, country):
         #print(unis[i] + i)
         if country.lower() in unis[i]['country'].lower():
             list_uni.append(str(unis[i]['world_rank']) + ") " + unis[i]['university_name'])
-            if len(list_uni) > 30:
+            if len(list_uni) >= 30:
                 return list_uni
     return list_uni
 
